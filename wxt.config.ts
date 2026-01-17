@@ -1,6 +1,13 @@
-import { defineConfig } from 'wxt';
+import { defineConfig } from "wxt";
 
 // See https://wxt.dev/api/config.html
 export default defineConfig({
-  modules: ['@wxt-dev/module-react'],
+  outDir: "output",
+  modules: ["@wxt-dev/module-react"],
+  manifest: {
+    permissions: ["sidePanel", "storage"],
+    action: {},
+    name: "Baize",
+    description: "AI-powered browser agent",
+  },
 });
