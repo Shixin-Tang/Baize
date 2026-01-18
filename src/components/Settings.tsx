@@ -18,7 +18,6 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
   const [showElevenLabsKey, setShowElevenLabsKey] = useState(false);
 
   useEffect(() => {
-    // Load settings from storage
     chrome.storage.local.get(
       [
         "apiKey",
@@ -52,7 +51,6 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
       },
     );
 
-    // Load available audio devices
     const loadDevices = async () => {
       try {
         const devices = await navigator.mediaDevices.enumerateDevices();
@@ -77,383 +75,144 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="settings-page" style={{ padding: "20px" }}>
-      <div
-        style={{ display: "flex", alignItems: "center", marginBottom: "20px" }}
-      >
+    <div className="panel settings-panel">
+      <header className="panel-header panel-header--settings">
         <button
           onClick={onBack}
-          style={{
-            background: "none",
-            border: "none",
-            color: "inherit",
-            padding: 0,
-            marginRight: "10px",
-          }}
+          className="icon-btn"
+          type="button"
+          aria-label="Back to chat"
         >
-          <ArrowLeft size={24} />
+          <ArrowLeft size={18} />
         </button>
-        <h2>Settings</h2>
-      </div>
-
-      {/* General Section */}
-      <div style={{ marginBottom: "24px" }}>
-        <h3
-          style={{
-            marginTop: 0,
-            marginBottom: "16px",
-            fontSize: "14px",
-            fontWeight: "600",
-            color: "var(--primary-color)",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
-          General
-        </h3>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "120px 1fr",
-            gap: "16px",
-            alignItems: "center",
-            paddingRight: "8px",
-          }}
-        >
-          <label
-            style={{
-              fontWeight: "500",
-              color: "var(--text-color)",
-              fontSize: "14px",
-            }}
-          >
-            Language
-          </label>
-          <div style={{ position: "relative" }}>
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "10px 12px",
-                borderRadius: "8px",
-                border: "none",
-                background: "var(--input-bg)",
-                color: "inherit",
-                outline: "none",
-                appearance: "none",
-                cursor: "pointer",
-                fontSize: "14px",
-                boxSizing: "border-box",
-              }}
-            >
-              <option value="en">English</option>
-              <option value="zh">Chinese (Simplified)</option>
-            </select>
-            <ChevronDown
-              size={16}
-              style={{
-                position: "absolute",
-                right: "12px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                pointerEvents: "none",
-                opacity: 0.5,
-              }}
-            />
+        <div className="panel-title-block">
+          <span className="pill">Configuration</span>
+          <div className="panel-title-row">
+            <h2 className="panel-title">Settings</h2>
           </div>
+          <p className="panel-subtitle">
+            Tune providers, voice, and shortcuts for your flow.
+          </p>
         </div>
-      </div>
+      </header>
 
-      <div
-        style={{
-          height: "1px",
-          background: "var(--border-color)",
-          marginBottom: "24px",
-          opacity: 0.3,
-        }}
-      />
+      <div className="panel-body settings-body">
+        <section className="settings-section fade-rise">
+          <div className="settings-section-title">General</div>
+          <div className="settings-row">
+            <label htmlFor="language-select" className="field-label">
+              Language
+            </label>
+            <div className="field-control">
+              <select
+                id="language-select"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className="field-select"
+              >
+                <option value="en">English</option>
+                <option value="zh">Chinese (Simplified)</option>
+              </select>
+              <ChevronDown size={16} className="field-icon" />
+            </div>
+          </div>
+        </section>
 
-      {/* AI Services Section */}
-      <div style={{ marginBottom: "24px" }}>
-        <h3
-          style={{
-            marginTop: 0,
-            marginBottom: "16px",
-            fontSize: "14px",
-            fontWeight: "600",
-            color: "var(--primary-color)",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
-          AI Services
-        </h3>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "120px 1fr",
-              gap: "16px",
-              alignItems: "center",
-              paddingRight: "8px",
-            }}
-          >
-            <label
-              style={{
-                fontWeight: "500",
-                color: "var(--text-color)",
-                fontSize: "14px",
-              }}
-            >
+        <section className="settings-section fade-rise">
+          <div className="settings-section-title">AI Services</div>
+          <div className="settings-row">
+            <label htmlFor="api-key" className="field-label">
               API Key
             </label>
-            <div
-              style={{
-                position: "relative",
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
+            <div className="field-control field-control--with-action">
               <input
+                id="api-key"
                 type={showApiKey ? "text" : "password"}
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                placeholder="Enter your API Key"
-                style={{
-                  width: "100%",
-                  padding: "10px 40px 10px 12px",
-                  borderRadius: "8px",
-                  border: "none",
-                  background: "var(--input-bg)",
-                  color: "inherit",
-                  outline: "none",
-                  fontSize: "14px",
-                  boxSizing: "border-box",
-                }}
+                placeholder="Enter your API key"
+                className="field-input"
               />
               <button
+                type="button"
                 onClick={() => setShowApiKey(!showApiKey)}
-                style={{
-                  position: "absolute",
-                  right: "10px",
-                  background: "none",
-                  border: "none",
-                  color: "var(--text-color)",
-                  opacity: 0.5,
-                  cursor: "pointer",
-                  padding: 0,
-                  display: "flex",
-                }}
+                className="field-action"
+                aria-label="Toggle API key visibility"
               >
                 {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "120px 1fr",
-              gap: "16px",
-              alignItems: "center",
-              paddingRight: "8px",
-            }}
-          >
-            <label
-              style={{
-                fontWeight: "500",
-                color: "var(--text-color)",
-                fontSize: "14px",
-              }}
-            >
+          <div className="settings-row">
+            <label htmlFor="base-url" className="field-label">
               Base URL
             </label>
-            <div style={{ position: "relative" }}>
+            <div className="field-control">
               <input
+                id="base-url"
                 type="text"
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
                 placeholder="https://api.openai.com/v1"
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  borderRadius: "8px",
-                  border: "none",
-                  background: "var(--input-bg)",
-                  color: "inherit",
-                  outline: "none",
-                  fontSize: "14px",
-                  boxSizing: "border-box",
-                }}
+                className="field-input"
               />
             </div>
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "120px 1fr",
-              gap: "16px",
-              alignItems: "center",
-              paddingRight: "8px",
-            }}
-          >
-            <label
-              style={{
-                fontWeight: "500",
-                color: "var(--text-color)",
-                fontSize: "14px",
-              }}
-            >
+          <div className="settings-row">
+            <label htmlFor="model-name" className="field-label">
               Model Name
             </label>
-            <div style={{ position: "relative" }}>
+            <div className="field-control">
               <input
+                id="model-name"
                 type="text"
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
                 placeholder="gemini-2.0-flash-exp"
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  borderRadius: "8px",
-                  border: "none",
-                  background: "var(--input-bg)",
-                  color: "inherit",
-                  outline: "none",
-                  fontSize: "14px",
-                  boxSizing: "border-box",
-                }}
+                className="field-input"
               />
             </div>
           </div>
-        </div>
-      </div>
+        </section>
 
-      <div
-        style={{
-          height: "1px",
-          background: "var(--border-color)",
-          marginBottom: "24px",
-          opacity: 0.3,
-        }}
-      />
-
-      {/* Voice & Speech Section */}
-      <div style={{ marginBottom: "24px" }}>
-        <h3
-          style={{
-            marginTop: 0,
-            marginBottom: "16px",
-            fontSize: "14px",
-            fontWeight: "600",
-            color: "var(--primary-color)",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
-          Voice & Speech
-        </h3>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "120px 1fr",
-              gap: "16px",
-              alignItems: "center",
-              paddingRight: "8px",
-            }}
-          >
-            <label
-              style={{
-                fontWeight: "500",
-                color: "var(--text-color)",
-                fontSize: "14px",
-              }}
-            >
+        <section className="settings-section fade-rise">
+          <div className="settings-section-title">Voice and Speech</div>
+          <div className="settings-row">
+            <label htmlFor="elevenlabs-key" className="field-label">
               ElevenLabs Key
             </label>
-            <div
-              style={{
-                position: "relative",
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
+            <div className="field-control field-control--with-action">
               <input
+                id="elevenlabs-key"
                 type={showElevenLabsKey ? "text" : "password"}
                 value={elevenLabsKey}
                 onChange={(e) => setElevenLabsKey(e.target.value)}
-                placeholder="Enter your ElevenLabs API Key"
-                style={{
-                  width: "100%",
-                  padding: "10px 40px 10px 12px",
-                  borderRadius: "8px",
-                  border: "none",
-                  background: "var(--input-bg)",
-                  color: "inherit",
-                  outline: "none",
-                  fontSize: "14px",
-                  boxSizing: "border-box",
-                }}
+                placeholder="Enter your ElevenLabs API key"
+                className="field-input"
               />
               <button
+                type="button"
                 onClick={() => setShowElevenLabsKey(!showElevenLabsKey)}
-                style={{
-                  position: "absolute",
-                  right: "10px",
-                  background: "none",
-                  border: "none",
-                  color: "var(--text-color)",
-                  opacity: 0.5,
-                  cursor: "pointer",
-                  padding: 0,
-                  display: "flex",
-                }}
+                className="field-action"
+                aria-label="Toggle ElevenLabs key visibility"
               >
                 {showElevenLabsKey ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "120px 1fr",
-              gap: "16px",
-              alignItems: "center",
-              paddingRight: "8px",
-            }}
-          >
-            <label
-              style={{
-                fontWeight: "500",
-                color: "var(--text-color)",
-                fontSize: "14px",
-              }}
-            >
+          <div className="settings-row">
+            <label htmlFor="microphone-select" className="field-label">
               Microphone
             </label>
-            <div style={{ position: "relative" }}>
+            <div className="field-control">
               <select
+                id="microphone-select"
                 value={selectedDeviceId}
                 onChange={(e) => setSelectedDeviceId(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  borderRadius: "8px",
-                  border: "none",
-                  background: "var(--input-bg)",
-                  color: "inherit",
-                  outline: "none",
-                  appearance: "none",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  boxSizing: "border-box",
-                }}
+                className="field-select"
               >
                 <option value="">Default</option>
                 {audioDevices.map((device) => (
@@ -462,41 +221,20 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
                   </option>
                 ))}
               </select>
-              <ChevronDown
-                size={16}
-                style={{
-                  position: "absolute",
-                  right: "12px",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  pointerEvents: "none",
-                  opacity: 0.5,
-                }}
-              />
+              <ChevronDown size={16} className="field-icon" />
             </div>
           </div>
-        </div>
-      </div>
+        </section>
 
-      <button
-        onClick={handleSave}
-        style={{
-          width: "100%",
-          padding: "10px",
-          backgroundColor: "var(--primary-color)",
-          color: "white",
-          border: "none",
-          borderRadius: "6px",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          gap: "8px",
-          fontWeight: "bold",
-        }}
-      >
-        <Save size={18} />
-        Save Settings
-      </button>
+        <button
+          onClick={handleSave}
+          className="primary-btn save-btn"
+          type="button"
+        >
+          <Save size={18} />
+          Save Settings
+        </button>
+      </div>
     </div>
   );
 };

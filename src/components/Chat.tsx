@@ -3,12 +3,10 @@ import {
   Send,
   Settings as SettingsIcon,
   Loader2,
-  Play,
   Volume2,
   Paperclip,
   Terminal,
   X,
-  Image as ImageIcon,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useBaizeChat } from "../hooks/use-baize-chat";
@@ -19,6 +17,13 @@ interface ChatProps {
   onOpenSettings: () => void;
 }
 
+const PROMPT_SUGGESTIONS = [
+  "Summarize the current page",
+  "Extract key action items",
+  "Draft a reply to the article",
+  "Turn this into study notes",
+];
+
 export const Chat: React.FC<ChatProps> = ({ onOpenSettings }) => {
   const {
     messages,
@@ -28,29 +33,39 @@ export const Chat: React.FC<ChatProps> = ({ onOpenSettings }) => {
     isLoading,
     config,
   } = useBaizeChat();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [playingMessageIndex, setPlayingMessageIndex] = useState<number | null>(
     null,
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textInputRef = useRef<HTMLInputElement>(null);
   const [attachments, setAttachments] = useState<File[]>([]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
   useEffect(() => {
-    scrollToBottom();
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const raf = requestAnimationFrame(() => {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: "smooth",
+      });
+    });
+    return () => cancelAnimationFrame(raf);
   }, [messages]);
 
   const handleVoiceTranscription = (text: string) => {
-    // Set the transcribed text to input
     handleInputChange({ target: { value: text } } as any);
+    textInputRef.current?.focus();
+  };
+
+  const handlePromptClick = (prompt: string) => {
+    handleInputChange({ target: { value: prompt } } as any);
+    textInputRef.current?.focus();
   };
 
   const handlePlayMessage = async (text: string, index: number) => {
     if (playingMessageIndex === index) {
-      return; // Already playing
+      return;
     }
 
     try {
@@ -80,17 +95,10 @@ export const Chat: React.FC<ChatProps> = ({ onOpenSettings }) => {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = e.target.files;
-    console.log("[Chat] File input change:", selectedFiles);
     if (selectedFiles && selectedFiles.length > 0) {
       const newFiles = Array.from(selectedFiles);
-      console.log("[Chat] processed files:", newFiles);
-      setAttachments((prev) => {
-        const updated = [...prev, ...newFiles];
-        console.log("[Chat] updated attachments:", updated);
-        return updated;
-      });
+      setAttachments((prev) => [...prev, ...newFiles]);
     }
-    // Reset input so same file can be selected again if needed
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -109,7 +117,7 @@ export const Chat: React.FC<ChatProps> = ({ onOpenSettings }) => {
   const renderMessageContent = (msg: any) => {
     if (typeof msg.content === "string") {
       return (
-        <div className="prose prose-sm max-w-none dark:prose-invert">
+        <div className="prose">
           <ReactMarkdown>{msg.content}</ReactMarkdown>
         </div>
       );
@@ -122,64 +130,21 @@ export const Chat: React.FC<ChatProps> = ({ onOpenSettings }) => {
         (part: any) => part.type !== "tool-call",
       );
       return (
-        <div>
-          {toolCallParts.map((part: any, idx: number) => {
-            return (
-              <div
-                key={`tool-call-${idx}`}
-                className="tool-call-indicator"
-                style={{
-                  marginTop: "12px",
-                  marginBottom: "12px",
-                  borderRadius: "8px",
-                  fontSize: "0.9em",
-                  border: "1px solid var(--border-color)",
-                  overflow: "hidden",
-                  backgroundColor: "rgba(0, 0, 0, 0.2)",
-                }}
-              >
-                <details>
-                  <summary
-                    style={{
-                      cursor: "pointer",
-                      outline: "none",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      fontWeight: "500",
-                      padding: "8px 12px",
-                      backgroundColor: "rgba(255, 255, 255, 0.03)",
-                      listStyle: "none",
-                    }}
-                  >
-                    <Terminal size={14} style={{ opacity: 0.7 }} />
-                    <span
-                      style={{
-                        fontFamily: "monospace",
-                        opacity: 0.9,
-                        flex: 1,
-                      }}
-                    >
-                      {part.toolName}
-                    </span>
-                  </summary>
-                  <pre
-                    style={{
-                      overflowX: "auto",
-                      fontSize: "0.85em",
-                      padding: "12px",
-                      margin: 0,
-                      color: "rgba(255, 255, 255, 0.8)",
-                      borderTop: "1px solid rgba(255, 255, 255, 0.05)",
-                      fontFamily: "monospace",
-                    }}
-                  >
-                    {JSON.stringify(part.args ?? part.input, null, 2)}
-                  </pre>
-                </details>
-              </div>
-            );
-          })}
+        <div className="message-stack">
+          {toolCallParts.map((part: any, idx: number) => (
+            <div key={`tool-call-${idx}`} className="tool-call-indicator">
+              <details>
+                <summary className="tool-call-summary">
+                  <Terminal size={14} />
+                  <span className="tool-call-name">{part.toolName}</span>
+                  <span className="tool-call-pill">Tool call</span>
+                </summary>
+                <pre className="tool-call-payload">
+                  {JSON.stringify(part.args ?? part.input, null, 2)}
+                </pre>
+              </details>
+            </div>
+          ))}
           {otherParts.map((part: any, idx: number) => {
             if (part.type === "tool-result") {
               return null;
@@ -187,28 +152,18 @@ export const Chat: React.FC<ChatProps> = ({ onOpenSettings }) => {
 
             if (part.type === "image") {
               return (
-                <div
-                  key={idx}
-                  style={{ marginTop: "8px", marginBottom: "8px" }}
-                >
+                <div key={idx}>
                   <img
                     src={part.image}
-                    alt="Attached image"
-                    style={{
-                      maxWidth: "100%",
-                      borderRadius: "8px",
-                      maxHeight: "300px",
-                    }}
+                    alt="Attached"
+                    className="message-image"
                   />
                 </div>
               );
             }
             if (part.type === "text") {
               return (
-                <div
-                  key={`text-${idx}`}
-                  className="prose prose-sm max-w-none dark:prose-invert"
-                >
+                <div key={`text-${idx}`} className="prose">
                   <ReactMarkdown>{part.text}</ReactMarkdown>
                 </div>
               );
@@ -223,300 +178,178 @@ export const Chat: React.FC<ChatProps> = ({ onOpenSettings }) => {
 
   if (!config?.apiKey) {
     return (
-      <div
-        style={{
-          height: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "center",
-          padding: "20px",
-          textAlign: "center",
-        }}
-      >
-        <h2>Welcome to Baize</h2>
-        <p>Please configure your AI provider to get started.</p>
-        <button
-          onClick={onOpenSettings}
-          style={{
-            marginTop: "20px",
-            padding: "10px 20px",
-            backgroundColor: "var(--primary-color)",
-            color: "white",
-            borderRadius: "6px",
-            border: "none",
-            fontWeight: "bold",
-          }}
-        >
-          Go to Settings
-        </button>
+      <div className="panel">
+        <div className="empty-state">
+          <span className="pill">Setup</span>
+          <h2 className="panel-title">Welcome to Baize</h2>
+          <p className="panel-subtitle">
+            Please configure your AI provider to get started.
+          </p>
+          <button
+            onClick={onOpenSettings}
+            className="primary-btn"
+            type="button"
+          >
+            Go to Settings
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container">
-      {/* Header */}
-      <div
-        style={{
-          padding: "12px",
-          borderBottom: "1px solid var(--border-color)",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          background: "var(--bg-color)",
-        }}
-      >
-        <h1
-          style={{
-            margin: 0,
-            fontSize: "18px",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-          }}
-        >
-          Baize
-          <span
-            style={{
-              fontSize: "10px",
-              padding: "2px 6px",
-              background: "#e0e7ff",
-              color: "#3730a3",
-              borderRadius: "10px",
-            }}
-          >
-            Beta
-          </span>
-        </h1>
+    <div className="panel chat-panel">
+      <header className="panel-header">
+        <div className="panel-title-block">
+          <span className="pill">Baize workspace</span>
+          <div className="panel-title-row">
+            <h1 className="panel-title">Baize</h1>
+            <span className="badge">Beta</span>
+          </div>
+          <p className="panel-subtitle">
+            A calm command center for the web. Ask for summaries, actions, and
+            quick research.
+          </p>
+        </div>
         <button
           onClick={onOpenSettings}
-          style={{
-            background: "none",
-            border: "none",
-            color: "var(--text-color)",
-          }}
+          className="icon-btn"
+          type="button"
+          aria-label="Open settings"
         >
-          <SettingsIcon size={20} />
+          <SettingsIcon size={18} />
         </button>
-      </div>
+      </header>
 
-      {/* Messages */}
-      <div
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          padding: "16px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "16px",
-        }}
-      >
-        {messages.map((msg, idx) => (
-          <div
-            key={idx}
-            style={{
-              alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
-              maxWidth: "85%",
-            }}
-          >
-            <div
-              style={{
-                padding: "12px",
-                borderRadius: "12px",
-                backgroundColor:
-                  msg.role === "user"
-                    ? "var(--chat-bg-user)"
-                    : "var(--chat-bg-ai)",
-                color: msg.role === "user" ? "white" : "var(--text-color)",
-                border: "1px solid transparent",
-              }}
-            >
-              {renderMessageContent(msg)}
+      <div className="panel-body">
+        <div className="messages" ref={messagesContainerRef}>
+          {messages.length === 0 && (
+            <div className="empty-chat">
+              <p className="empty-title">Start a session</p>
+              <p className="empty-subtitle">
+                Pick a prompt or describe what you want Baize to handle.
+              </p>
+              <div className="prompt-grid">
+                {PROMPT_SUGGESTIONS.map((prompt) => (
+                  <button
+                    key={prompt}
+                    type="button"
+                    className="prompt-chip"
+                    onClick={() => handlePromptClick(prompt)}
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
             </div>
-            {/* Play button for assistant messages */}
-            {msg.role === "assistant" && (
-              <button
-                onClick={() =>
-                  handlePlayMessage(extractTextFromMessage(msg), idx)
-                }
-                disabled={playingMessageIndex === idx}
-                style={{
-                  marginTop: "4px",
-                  background: "none",
-                  border: "none",
-                  color: "var(--text-color)",
-                  cursor:
-                    playingMessageIndex === idx ? "not-allowed" : "pointer",
-                  opacity: playingMessageIndex === idx ? 0.6 : 0.7,
-                  padding: "4px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  fontSize: "12px",
-                }}
-                title="Play audio"
-              >
-                {playingMessageIndex === idx ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" />
-                    Playing...
-                  </>
-                ) : (
-                  <>
-                    <Volume2 size={14} />
-                    Play
-                  </>
-                )}
-              </button>
-            )}
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
-      </div>
+          )}
+          {messages.map((msg, idx) => (
+            <div
+              key={idx}
+              className={`message ${
+                msg.role === "user" ? "message--user" : "message--assistant"
+              }`}
+            >
+              <div className="message-bubble">{renderMessageContent(msg)}</div>
+              {msg.role === "assistant" && (
+                <div className="message-actions">
+                  <button
+                    onClick={() =>
+                      handlePlayMessage(extractTextFromMessage(msg), idx)
+                    }
+                    disabled={playingMessageIndex === idx}
+                    className="message-action"
+                    type="button"
+                    title="Play audio"
+                  >
+                    {playingMessageIndex === idx ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" />
+                        Playing...
+                      </>
+                    ) : (
+                      <>
+                        <Volume2 size={14} />
+                        Play
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
 
-      {/* Input */}
-      <div
-        style={{
-          borderTop: "1px solid var(--border-color)",
-          background: "var(--bg-color)",
-          padding: "12px",
-        }}
-      >
-        {/* Thumbnails Preview */}
-        {attachments.length > 0 && (
-          <div
-            style={{
-              display: "flex",
-              gap: "8px",
-              overflowX: "auto",
-              marginBottom: "8px",
-              paddingBottom: "4px",
-            }}
-          >
-            {attachments.map((file, idx) => (
-              <div key={idx} style={{ position: "relative", flexShrink: 0 }}>
-                <img
-                  src={URL.createObjectURL(file)}
-                  alt="preview"
-                  style={{
-                    width: "60px",
-                    height: "60px",
-                    objectFit: "cover",
-                    borderRadius: "6px",
-                    border: "1px solid #ddd",
-                  }}
-                />
+        <div className="composer">
+          {attachments.length > 0 && (
+            <div className="attachments">
+              {attachments.map((file, idx) => (
+                <div key={idx} className="attachment-card">
+                  <img
+                    src={URL.createObjectURL(file)}
+                    alt="Preview"
+                    className="attachment-image"
+                  />
+                  <button
+                    onClick={() => removeAttachment(idx)}
+                    className="attachment-remove"
+                    type="button"
+                    aria-label="Remove attachment"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <form onSubmit={onFormSubmit} className="composer-form">
+            <div className="composer-row">
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                ref={fileInputRef}
+                style={{ display: "none" }}
+                onChange={handleFileSelect}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="icon-btn"
+                disabled={isLoading}
+                title="Attach image"
+              >
+                <Paperclip size={20} />
+              </button>
+              <input
+                ref={textInputRef}
+                value={input}
+                onChange={handleInputChange}
+                placeholder="Ask Baize to do something..."
+                className="input-field"
+                disabled={isLoading}
+              />
+              <div className="composer-actions">
+                <VoiceControl onTranscription={handleVoiceTranscription} />
                 <button
-                  onClick={() => removeAttachment(idx)}
-                  style={{
-                    position: "absolute",
-                    top: "-6px",
-                    right: "-6px",
-                    background: "gray",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "50%",
-                    width: "18px",
-                    height: "18px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                    fontSize: "10px",
-                  }}
+                  type="submit"
+                  className="primary-btn send-btn"
+                  disabled={
+                    isLoading || (!input.trim() && attachments.length === 0)
+                  }
+                  title="Send message"
                 >
-                  <X size={12} />
+                  {isLoading ? (
+                    <Loader2 size={20} className="animate-spin" />
+                  ) : (
+                    <Send size={20} />
+                  )}
                 </button>
               </div>
-            ))}
-          </div>
-        )}
-
-        <form
-          onSubmit={onFormSubmit}
-          style={{
-            padding: 0,
-            margin: 0,
-          }}
-        >
-          <div style={{ display: "flex", gap: "8px", alignItems: "flex-end" }}>
-            <input
-              type="file"
-              multiple
-              accept="image/*"
-              ref={fileInputRef}
-              style={{ display: "none" }}
-              onChange={handleFileSelect}
-            />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              style={{
-                background: "none",
-                border: "none",
-                padding: "8px",
-                color: "var(--text-color)",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-              }}
-              disabled={isLoading}
-              title="Attach Image"
-            >
-              <Paperclip size={20} />
-            </button>
-            <input
-              value={input}
-              onChange={handleInputChange}
-              placeholder="Ask Baize to do something..."
-              style={{
-                flex: 1,
-                padding: "10px",
-                borderRadius: "8px",
-                border: "1px solid var(--border-color)",
-                background: "var(--input-bg)",
-                color: "inherit",
-                outline: "none",
-                minHeight: "44px",
-              }}
-              disabled={isLoading}
-            />
-            <VoiceControl onTranscription={handleVoiceTranscription} />
-            <button
-              type="submit"
-              disabled={
-                isLoading || (!input.trim() && attachments.length === 0)
-              }
-              style={{
-                background: "var(--primary-color)",
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                padding: "8px",
-                width: "40px",
-                height: "40px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                opacity:
-                  isLoading || (!input.trim() && attachments.length === 0)
-                    ? 0.6
-                    : 1,
-                cursor:
-                  isLoading || (!input.trim() && attachments.length === 0)
-                    ? "not-allowed"
-                    : "pointer",
-              }}
-            >
-              {isLoading ? (
-                <Loader2 size={20} className="animate-spin" />
-              ) : (
-                <Send size={20} />
-              )}
-            </button>
-          </div>
-        </form>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

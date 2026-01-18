@@ -6,18 +6,16 @@ function App() {
   const [view, setView] = useState<"chat" | "settings">("chat");
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "var(--bg-color)",
-        color: "var(--text-color)",
-      }}
-    >
-      {view === "chat" ? (
-        <Chat onOpenSettings={() => setView("settings")} />
-      ) : (
-        <Settings onBack={() => setView("chat")} />
-      )}
+    <div className="app-shell">
+      <div className="app-orb app-orb--one" aria-hidden="true" />
+      <div className="app-orb app-orb--two" aria-hidden="true" />
+      <div className="app-inner">
+        {view === "chat" ? (
+          <Chat onOpenSettings={() => setView("settings")} />
+        ) : (
+          <Settings onBack={() => setView("chat")} />
+        )}
+      </div>
     </div>
   );
 }

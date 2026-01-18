@@ -118,27 +118,20 @@ export const VoiceControl: React.FC<VoiceControlProps> = ({
     }
   };
 
+  const buttonClassName = [
+    "voice-btn",
+    isRecording ? "voice-btn--recording" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-      {/* Recording button */}
+    <div className="voice-control">
       <button
         type="button"
         onClick={isRecording ? stopRecording : startRecording}
         disabled={isTranscribing}
-        style={{
-          background: isRecording ? "#ef4444" : "var(--primary-color)",
-          color: "white",
-          border: "none",
-          borderRadius: "8px",
-          padding: "8px",
-          width: "40px",
-          height: "40px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          cursor: isTranscribing ? "not-allowed" : "pointer",
-          opacity: isTranscribing ? 0.6 : 1,
-        }}
+        className={buttonClassName}
         title={isRecording ? "Stop recording" : "Start recording"}
       >
         {isTranscribing ? (
