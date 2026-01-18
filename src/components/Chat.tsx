@@ -39,17 +39,17 @@ export const Chat: React.FC<ChatProps> = ({ onOpenSettings }) => {
     const selectedFiles = e.target.files;
     console.log("[Chat] File input change:", selectedFiles);
     if (selectedFiles && selectedFiles.length > 0) {
-        const newFiles = Array.from(selectedFiles);
-        console.log("[Chat] processed files:", newFiles);
-        setAttachments((prev) => {
-          const updated = [...prev, ...newFiles];
-          console.log("[Chat] updated attachments:", updated);
-          return updated;
-        });
+      const newFiles = Array.from(selectedFiles);
+      console.log("[Chat] processed files:", newFiles);
+      setAttachments((prev) => {
+        const updated = [...prev, ...newFiles];
+        console.log("[Chat] updated attachments:", updated);
+        return updated;
+      });
     }
     // Reset input so same file can be selected again if needed
     if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+      fileInputRef.current.value = "";
     }
   };
 
@@ -58,9 +58,9 @@ export const Chat: React.FC<ChatProps> = ({ onOpenSettings }) => {
   };
 
   const onFormSubmit = (e: React.FormEvent) => {
-      e.preventDefault();
-      handleSubmit(e, attachments);
-      setAttachments([]);
+    e.preventDefault();
+    handleSubmit(e, attachments);
+    setAttachments([]);
   };
 
   const renderMessageContent = (msg: any) => {
@@ -68,76 +68,86 @@ export const Chat: React.FC<ChatProps> = ({ onOpenSettings }) => {
       return <div>{msg.content}</div>;
     }
     if (Array.isArray(msg.content)) {
+      const toolCallParts = msg.content.filter(
+        (part: any) => part.type === "tool-call",
+      );
+      const otherParts = msg.content.filter(
+        (part: any) => part.type !== "tool-call",
+      );
       return (
         <div>
-          {msg.content.map((part: any, idx: number) => {
-            if (part.type === "text") {
-              return <div key={idx}>{part.text}</div>;
+          {toolCallParts.map((part: any, idx: number) => {
+            return (
+              <div
+                key={`tool-call-${idx}`}
+                className="tool-call-indicator"
+                style={{
+                  marginTop: "8px",
+                  padding: "8px",
+                  background: "rgba(0,0,0,0.05)",
+                  borderRadius: "4px",
+                  fontSize: "0.9em",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    fontWeight: "bold",
+                  }}
+                >
+                  <Play size={14} />
+                  Using tool: {part.toolName}
+                </div>
+                <details>
+                  <summary
+                    style={{
+                      cursor: "pointer",
+                      outline: "none",
+                      marginTop: "4px",
+                    }}
+                  >
+                    View Details
+                  </summary>
+                  <pre
+                    style={{
+                      overflowX: "auto",
+                      fontSize: "0.85em",
+                      marginTop: "4px",
+                    }}
+                  >
+                    {JSON.stringify(part.args ?? part.input, null, 2)}
+                  </pre>
+                </details>
+              </div>
+            );
+          })}
+          {otherParts.map((part: any, idx: number) => {
+            if (part.type === "tool-result") {
+              return null;
             }
+
             if (part.type === "image") {
-                return (
-                    <div key={idx} style={{ marginTop: '8px', marginBottom: '8px' }}>
-                        <img 
-                            src={part.image} 
-                            alt="Attached image" 
-                            style={{ maxWidth: '100%', borderRadius: '8px', maxHeight: '300px' }} 
-                        />
-                    </div>
-                )
-            }
-            if (part.type === "tool-call") {
               return (
                 <div
                   key={idx}
-                  className="tool-call-indicator"
-                  style={{
-                    marginTop: "8px",
-                    padding: "8px",
-                    background: "rgba(0,0,0,0.05)",
-                    borderRadius: "4px",
-                    fontSize: "0.9em",
-                  }}
+                  style={{ marginTop: "8px", marginBottom: "8px" }}
                 >
-                  <div
+                  <img
+                    src={part.image}
+                    alt="Attached image"
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                      fontWeight: "bold",
+                      maxWidth: "100%",
+                      borderRadius: "8px",
+                      maxHeight: "300px",
                     }}
-                  >
-                    <Play size={14} />
-                    Using tool: {part.toolName}
-                  </div>
-                  <details>
-                    <summary
-                      style={{
-                        cursor: "pointer",
-                        outline: "none",
-                        marginTop: "4px",
-                      }}
-                    >
-                      View Details
-                    </summary>
-                    <pre
-                      style={{
-                        overflowX: "auto",
-                        fontSize: "0.85em",
-                        marginTop: "4px",
-                      }}
-                    >
-                      {JSON.stringify(part.args, null, 2)}
-                    </pre>
-                  </details>
+                  />
                 </div>
               );
             }
-            if (part.type === "tool-result") {
-              // Not standard CoreMessage content part type for 'assistant' but 'tool' role messages have content array of tool-result?
-              // Actually 'assistant' message only has text and tool-call.
-              // 'tool' message has tool-result.
-              // We display tool results if they are in the message history as separate 'tool' role messages.
-              return null;
+            if (part.type === "text") {
+              return <div key={`text-${idx}`}>{part.text}</div>;
             }
             return null;
           })}
@@ -260,88 +270,102 @@ export const Chat: React.FC<ChatProps> = ({ onOpenSettings }) => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
+      {/* Input */}
       <div
-          style={{
-            borderTop: "1px solid var(--border-color)",
-            background: "var(--bg-color)",
-            padding: "12px",
-          }}
+        style={{
+          borderTop: "1px solid var(--border-color)",
+          background: "var(--bg-color)",
+          padding: "12px",
+        }}
       >
         {/* Thumbnails Preview */}
         {attachments.length > 0 && (
-            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', marginBottom: '8px', paddingBottom: '4px' }}>
-                {attachments.map((file, idx) => (
-                    <div key={idx} style={{ position: 'relative', flexShrink: 0 }}>
-                        <img
-                            src={URL.createObjectURL(file)}
-                            alt="preview"
-                            style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #ddd' }}
-                        />
-                        <button
-                            onClick={() => removeAttachment(idx)}
-                            style={{
-                                position: 'absolute',
-                                top: '-6px',
-                                right: '-6px',
-                                background: 'gray',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '50%',
-                                width: '18px',
-                                height: '18px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                cursor: 'pointer',
-                                fontSize: '10px'
-                            }}
-                        >
-                            <X size={12} />
-                        </button>
-                    </div>
-                ))}
-            </div>
+          <div
+            style={{
+              display: "flex",
+              gap: "8px",
+              overflowX: "auto",
+              marginBottom: "8px",
+              paddingBottom: "4px",
+            }}
+          >
+            {attachments.map((file, idx) => (
+              <div key={idx} style={{ position: "relative", flexShrink: 0 }}>
+                <img
+                  src={URL.createObjectURL(file)}
+                  alt="preview"
+                  style={{
+                    width: "60px",
+                    height: "60px",
+                    objectFit: "cover",
+                    borderRadius: "6px",
+                    border: "1px solid #ddd",
+                  }}
+                />
+                <button
+                  onClick={() => removeAttachment(idx)}
+                  style={{
+                    position: "absolute",
+                    top: "-6px",
+                    right: "-6px",
+                    background: "gray",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "50%",
+                    width: "18px",
+                    height: "18px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    fontSize: "10px",
+                  }}
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+          </div>
         )}
 
         <form
-            onSubmit={onFormSubmit}
-            style={{
+          onSubmit={onFormSubmit}
+          style={{
             padding: 0,
-            margin: 0
-            }}
+            margin: 0,
+          }}
         >
-            <div style={{ display: "flex", gap: "8px", alignItems: 'flex-end' }}>
+          <div style={{ display: "flex", gap: "8px", alignItems: "flex-end" }}>
             <input
-                type="file"
-                multiple
-                accept="image/*"
-                ref={fileInputRef}
-                style={{ display: 'none' }}
-                onChange={handleFileSelect}
+              type="file"
+              multiple
+              accept="image/*"
+              ref={fileInputRef}
+              style={{ display: "none" }}
+              onChange={handleFileSelect}
             />
             <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                style={{
-                    background: 'none',
-                    border: 'none',
-                    padding: '8px',
-                    color: 'var(--text-color)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center'
-                }}
-                disabled={isLoading}
-                title="Attach Image"
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                background: "none",
+                border: "none",
+                padding: "8px",
+                color: "var(--text-color)",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+              }}
+              disabled={isLoading}
+              title="Attach Image"
             >
-                <Paperclip size={20} />
+              <Paperclip size={20} />
             </button>
             <input
-                value={input}
-                onChange={handleInputChange}
-                placeholder="Ask Baize to do something..."
-                style={{
+              value={input}
+              onChange={handleInputChange}
+              placeholder="Ask Baize to do something..."
+              style={{
                 flex: 1,
                 padding: "10px",
                 borderRadius: "8px",
@@ -349,14 +373,16 @@ export const Chat: React.FC<ChatProps> = ({ onOpenSettings }) => {
                 background: "var(--input-bg)",
                 color: "inherit",
                 outline: "none",
-                minHeight: "44px"
-                }}
-                disabled={isLoading}
+                minHeight: "44px",
+              }}
+              disabled={isLoading}
             />
             <button
-                type="submit"
-                disabled={isLoading || (!input.trim() && attachments.length === 0)}
-                style={{
+              type="submit"
+              disabled={
+                isLoading || (!input.trim() && attachments.length === 0)
+              }
+              style={{
                 background: "var(--primary-color)",
                 color: "white",
                 border: "none",
@@ -366,16 +392,19 @@ export const Chat: React.FC<ChatProps> = ({ onOpenSettings }) => {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                opacity: isLoading || (!input.trim() && attachments.length === 0) ? 0.6 : 1,
-                }}
+                opacity:
+                  isLoading || (!input.trim() && attachments.length === 0)
+                    ? 0.6
+                    : 1,
+              }}
             >
-                {isLoading ? (
+              {isLoading ? (
                 <Loader2 size={20} className="animate-spin" />
-                ) : (
+              ) : (
                 <Send size={20} />
-                )}
+              )}
             </button>
-            </div>
+          </div>
         </form>
       </div>
     </div>

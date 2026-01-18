@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { streamText } from "ai";
+import { streamText, stepCountIs } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
 import { tools } from "../lib/tools";
@@ -34,7 +34,11 @@ export function useBaizeChat() {
   const handleSubmit = useCallback(
     async (e?: React.FormEvent, attachments?: File[]) => {
       e?.preventDefault();
-      if ((!input.trim() && (!attachments || attachments.length === 0)) || !config) return;
+      if (
+        (!input.trim() && (!attachments || attachments.length === 0)) ||
+        !config
+      )
+        return;
 
       setIsLoading(true);
 
@@ -48,17 +52,17 @@ export function useBaizeChat() {
           const base64 = await new Promise<string>((resolve) => {
             const reader = new FileReader();
             reader.onloadend = () => {
-                const result = reader.result as string;
-                // Remove data URL prefix (e.g., "data:image/png;base64,") if the API expects just base64,
-                // BUT the AI SDK usually expects the full data URL or handles it.
-                // Checking AI SDK docs or common usage: usually `image` part takes a URL or base64.
-                // For `experimental_attachments` or standard `content` array with `image` type:
-                // Vercel AI SDK `CoreMessage` `UserContent` `ImagePart` expects `image` which is Uint8Array | ArrayBuffer | string (url/base64).
-                resolve(result);
+              const result = reader.result as string;
+              // Remove data URL prefix (e.g., "data:image/png;base64,") if the API expects just base64,
+              // BUT the AI SDK usually expects the full data URL or handles it.
+              // Checking AI SDK docs or common usage: usually `image` part takes a URL or base64.
+              // For `experimental_attachments` or standard `content` array with `image` type:
+              // Vercel AI SDK `CoreMessage` `UserContent` `ImagePart` expects `image` which is Uint8Array | ArrayBuffer | string (url/base64).
+              resolve(result);
             };
             reader.readAsDataURL(file);
           });
-           contentParts.push({ type: "image", image: base64 });
+          contentParts.push({ type: "image", image: base64 });
         }
       }
 
@@ -85,12 +89,12 @@ export function useBaizeChat() {
             ? "你是白泽 (Baize)，一个强大的浏览器AI助手。你可以读取网页内容，点击按钮，输入文字。请根据用户需求使用工具。"
             : "You are Baize, a powerful browser AI assistant. You can read page content, click buttons, and input text. Use tools as needed to fulfill user requests.";
 
-        const result = await streamText({
+        const result = streamText({
           model: provider(config.model),
           system: systemPrompt,
           messages: [...messages, userMessage] as any,
           tools: tools,
-          maxSteps: 5,
+          stopWhen: stepCountIs(5),
         } as any);
 
         let accumulatedText = "";
@@ -100,8 +104,8 @@ export function useBaizeChat() {
 
         for await (const part of result.fullStream) {
           if (part.type === "text-delta") {
-            accumulatedText +=
-              (part as any).text || (part as any).textDelta || "";
+            const textDelta = (part as any).text ?? (part as any).delta ?? "";
+            accumulatedText += textDelta;
           } else if (part.type === "tool-call") {
             const toolCallPart = part;
             toolCalls[toolCallPart.toolCallId] = toolCallPart;
@@ -117,7 +121,12 @@ export function useBaizeChat() {
                 if (accumulatedText)
                   contentParts.push({ type: "text", text: accumulatedText });
                 Object.values(toolCalls).forEach((tc) => {
-                  contentParts.push({ type: "tool-call", ...tc.toolCall });
+                  contentParts.push({
+                    type: "tool-call",
+                    toolCallId: tc.toolCallId,
+                    toolName: tc.toolName,
+                    input: tc.input,
+                  });
                 });
                 newMessages[newMessages.length - 1] = {
                   ...lastMsg,

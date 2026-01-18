@@ -5,7 +5,7 @@ export default defineConfig({
   outDir: "output",
   modules: ["@wxt-dev/module-react"],
   manifest: {
-    permissions: ["sidePanel", "storage"],
+    permissions: ["sidePanel", "storage", "tabs"],
     action: {},
     name: "Baize",
     description: "AI-powered browser agent",
